@@ -1,0 +1,170 @@
+import static com.vector.cfg.automation.api.ScriptApi.*
+import com.vector.cfg.model.cedescriptor.aspect.IMdfObjectAspect
+import groovy.json.JsonOutput
+import java.net.InetAddress
+import java.net.ServerSocket
+
+/*
+ * Local DaVinci Automation Interface adapter.
+ * This script is written for this project and requires a licensed DaVinci installation.
+ */
+daVinci {
+    scriptDescription "LGK-Vector DaVinci adapter"
+
+    scriptTask("LGKVectorDaemon", DV_PROJECT) {
+        taskDescription "Local requests for validation, generation, and normal shutdown"
+
+        code {
+            def text = { value -> value == null ? "" : value.toString() }
+            def issueId = { result ->
+                try { return "${result.id.origin}:${result.id.id}" } catch (Throwable ignored) { return "UNKNOWN" }
+            }
+            def errorResult = { result ->
+                try { return result?.severity?.toString()?.equalsIgnoreCase("ERROR") } catch (Throwable ignored) { return false }
+            }
+            def linkedPath = { element ->
+                try {
+                    def modelObject = element?.getAspect(IMdfObjectAspect.class)?.object
+                    if (modelObject == null) return null
+                    for (String propertyName : ["asrPath", "absoluteAsrPath", "path"]) {
+                        def property = modelObject.metaClass.hasProperty(modelObject, propertyName)
+                        if (property == null) continue
+                        def value = property.getProperty(modelObject)
+                        if (value != null) return text(value)
+                    }
+                } catch (Throwable ignored) {}
+                return null
+            }
+            def inModule = { result, module ->
+                if (module == null || module.trim().equalsIgnoreCase("all")) return true
+                def marker = "/${module.trim()}/"
+                def elements = result?.erroneousCEs
+                if (elements == null) return false
+                for (def element : elements) {
+                    def location = linkedPath(element)
+                    if (location != null && location.contains(marker)) return true
+                }
+                return false
+            }
+            def actionsFor = { result ->
+                def actions = []
+                try {
+                    result.solvingActions?.eachWithIndex { action, index ->
+                        actions << [index: index, description: text(action?.description), preferred: action?.preferred == true]
+                    }
+                } catch (Throwable ignored) {}
+                actions
+            }
+            def matchingErrors = { module ->
+                validation {
+                    validationResults.findAll { result -> errorResult(result) && inModule(result, module) }
+                        .sort { left, right -> issueId(left) <=> issueId(right) }
+                }
+            }
+            def emitList = { module, send ->
+                def counters = [:].withDefault { 0 }
+                def matched = matchingErrors(module)
+                def entries = matched.collect { result ->
+                    def id = issueId(result)
+                    def index = counters[id] as int
+                    counters[id] = index + 1
+                    def actions = actionsFor(result)
+                    [
+                        id: id,
+                        count: 1,
+                        has_actions: !actions.isEmpty(),
+                        actions: actions,
+                        items: [[item_index: index, description: text(result?.description)]]
+                    ]
+                }
+                def grouped = [:].withDefault { [count: 0, actions: [], items: [], has_actions: false] }
+                entries.each { entry ->
+                    def bucket = grouped[entry.id]
+                    bucket.count += entry.count
+                    bucket.actions = entry.actions
+                    bucket.has_actions = entry.has_actions
+                    bucket.items.addAll(entry.items)
+                }
+                def errors = grouped.collect { id, bucket ->
+                    [id: id, count: bucket.count, has_actions: bucket.has_actions, actions: bucket.actions, items: bucket.items]
+                }.sort { left, right -> left.id <=> right.id }
+                send("ECUC_JSON_BEGIN")
+                send(JsonOutput.toJson([module: module ?: "all", total: errors.collect { it.count }.sum() ?: 0, solvable: errors.count { it.has_actions }, errors: errors]))
+                send("ECUC_JSON_END")
+            }
+            def selectedIds = { raw ->
+                if (raw == null || raw.trim().isEmpty()) return [] as Set
+                raw.split(",").collect { token -> token.trim().split("[#@]", 2)[0] }.findAll { !it.isEmpty() }.toSet()
+            }
+            def solve = { module, rawTargets, send ->
+                def wanted = selectedIds(rawTargets)
+                def before = matchingErrors(module)
+                if (before.isEmpty()) {
+                    send("OK: no matching validation errors")
+                    return
+                }
+                validation {
+                    solver.solve {
+                        result { candidate ->
+                            errorResult(candidate) && inModule(candidate, module) && (wanted.isEmpty() || wanted.contains(issueId(candidate)))
+                        }.withAction { preferred }
+                    }
+                    saveProject()
+                }
+                def after = matchingErrors(module)
+                send("OK: solved ${before.size() - after.size()} of ${before.size()} matching validation error(s)")
+            }
+            // Rust 已从实际 ECUC 读取 definitionRef；DaVinci 据此精确选择生成器。
+            // 不在这里拼接芯片名、资源包名或 /MICROSAR 前缀。
+            def generateModule = { module, definitionRef, send ->
+                generation {
+                    if (module != null && !module.trim().isEmpty() && !module.equalsIgnoreCase("all")) {
+                        if (definitionRef == null || definitionRef.trim().isEmpty()) {
+                            throw new IllegalArgumentException("module definition ref is required")
+                        }
+                        settings { selectGeneratorsByDefRef(definitionRef.trim()) }
+                    }
+                    generate()
+                }
+                send("OK: generation completed")
+            }
+
+            // 使用随机本机端口，避免和其他 Bridge/DaVinci 会话争用固定端口。
+            def server = new ServerSocket(0, 16, InetAddress.getByName("127.0.0.1"))
+            println "LGK_VECTOR_READY:${server.localPort}"
+            while (true) {
+                def socket = server.accept()
+                try {
+                    def reader = new BufferedReader(new InputStreamReader(socket.inputStream, "UTF-8"))
+                    def writer = new PrintWriter(new OutputStreamWriter(socket.outputStream, "UTF-8"), true)
+                    def send = { line -> writer.println(line) }
+                    def request = reader.readLine()
+                    if (request == null || request.trim().equalsIgnoreCase("SHUTDOWN")) {
+                        send("ECUC_END")
+                        break
+                    }
+                    // 简单文本协议：LIST|module、SOLVE|module|targets、GEN|module|definitionRef。
+                    def parts = request.split("\\|", 3)
+                    def command = parts[0].trim().toUpperCase(Locale.ROOT)
+                    def module = parts.length > 1 ? parts[1].trim() : "all"
+                    def targets = parts.length > 2 ? parts[2].trim() : null
+                    try {
+                        switch (command) {
+                            case "LIST": emitList(module, send); break
+                            case "SOLVE": solve(module, targets, send); break
+                            // 对 GEN 而言第三段不是 targets，而是真实 definitionRef。
+                            case "GEN": generateModule(module, targets, send); break
+                            default: send("FAIL: unsupported command ${command}")
+                        }
+                    } catch (Throwable failure) {
+                        send("FAIL: ${text(failure.message)}")
+                    }
+                    send("ECUC_END")
+                } finally {
+                    try { socket.close() } catch (Throwable ignored) {}
+                }
+            }
+            try { server.close() } catch (Throwable ignored) {}
+        }
+    }
+}

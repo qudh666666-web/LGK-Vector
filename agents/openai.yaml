@@ -1,0 +1,5 @@
+interface:
+  display_name: "LGK-Vector"
+  short_description: "查看源码并操作 Vector DaVinci ECUC 工程"
+  default_prompt: "Use $lgk-vector to inspect this Vector ECUC project or the LGK-Vector source, make only verified scoped changes, validate them, and record tool updates."
+

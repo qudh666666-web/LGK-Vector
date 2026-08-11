@@ -1,0 +1,10 @@
+LGK-Vector is an independent community project.
+
+It is not affiliated with, endorsed by, or distributed by Vector Informatik GmbH.
+Users must supply their own legally licensed DaVinci Configurator installation.
+Do not add Vector binaries, licenses, customer ARXML, DPA projects, or generated
+production artifacts to this repository.
+
+Do not describe this repository as a clean-room reproduction. Before a public
+release, maintainers must confirm that every contribution is independently
+authored and contains no restricted third-party material.

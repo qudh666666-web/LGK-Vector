@@ -1,0 +1,54 @@
+name: public-ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-public-suite:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Lint all targets
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: Test all targets
+        run: cargo test --all-targets --locked
+
+      - name: Check dependency licenses
+        shell: powershell
+        run: .\tests\open-source\Invoke-DependencyLicenseGuard.ps1
+
+      - name: Build release pair
+        shell: pwsh
+        run: |
+          $env:LGK_VECTOR_BUILD_ID = '${{ github.sha }}'
+          cargo build --release --locked
+
+      - name: Verify package manifest excludes ignored customer files
+        shell: powershell
+        run: .\tests\open-source\Invoke-PackageManifestSmoke.ps1
+
+      - name: Run first-time-user smoke test
+        shell: powershell
+        run: .\tests\onboarding\Invoke-OnboardingSmoke.ps1
+
+      - name: Guard public repository contents
+        shell: powershell
+        run: .\tests\open-source\Invoke-OpenSourceGuard.ps1 -IncludeHistory

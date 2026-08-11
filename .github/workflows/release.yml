@@ -1,0 +1,66 @@
+name: windows-release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-windows-package:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal --component rustfmt,clippy
+          rustup default stable
+
+      - name: Verify tag matches Cargo version
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -LiteralPath .\Cargo.toml -Raw
+          $match = [regex]::Match($manifest, '(?m)^version\s*=\s*"(?<version>\d+\.\d+\.\d+)"')
+          if (-not $match.Success) { throw 'Cargo package version was not found' }
+          $expected = 'v' + $match.Groups['version'].Value
+          if ('${{ github.ref_name }}' -ne $expected) {
+            throw "Tag '${{ github.ref_name }}' does not match Cargo version '$expected'"
+          }
+
+      - name: Run public release gates
+        shell: pwsh
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --locked -- -D warnings
+          cargo test --all-targets --locked
+          .\tests\open-source\Invoke-DependencyLicenseGuard.ps1
+          .\tests\open-source\Invoke-OpenSourceGuard.ps1 -IncludeHistory
+          $env:LGK_VECTOR_BUILD_ID = '${{ github.sha }}'
+          cargo build --release --locked
+          .\tests\open-source\Invoke-PackageManifestSmoke.ps1
+          .\tests\onboarding\Invoke-OnboardingSmoke.ps1
+
+      - name: Build source-visible Windows package
+        shell: pwsh
+        run: |
+          $package = Join-Path $PWD 'dist\LGK-Vector'
+          .\scripts\Sync-LGKVectorPackage.ps1 `
+            -SourceRoot $PWD `
+            -DestinationRoot $package `
+            -IncludeBinaries | Out-Null
+          $archive = Join-Path $PWD "dist\LGK-Vector-${{ github.ref_name }}-windows-x64.zip"
+          Compress-Archive -LiteralPath $package -DestinationPath $archive
+          "LGK_RELEASE_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create '${{ github.ref_name }}' $env:LGK_RELEASE_ARCHIVE --verify-tag --generate-notes

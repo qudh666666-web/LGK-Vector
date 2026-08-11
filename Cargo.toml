@@ -1,0 +1,38 @@
+[package]
+name = "lgk-vector"
+version = "0.3.0"
+edition = "2021"
+description = "Open-source local bridge for licensed Vector DaVinci ECUC projects"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/qudh666666-web/LGK-Vector"
+keywords = ["autosar", "ecuc", "davinci", "vector"]
+categories = ["command-line-utilities", "development-tools"]
+
+[lib]
+name = "lgk_vector"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lgk-vector"
+path = "src/bin/lgk-vector.rs"
+
+[[bin]]
+name = "lgk-vector-host"
+path = "src/bin/lgk-vector-host.rs"
+
+[dependencies]
+anyhow = "1.0"
+rand = "0.9"
+regex = "1.13"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+walkdir = "2.5"
+xmltree = "0.11"
+
+[dev-dependencies]
+tempfile = "3.20"
+
+[profile.release]
+strip = false
+panic = "abort"
