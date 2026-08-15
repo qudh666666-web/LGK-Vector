@@ -2,6 +2,12 @@
 
 版本号说明发布顺序，Git 提交号用于定位准确源码。每次功能、接口、包装器或 Skill 改动，都必须在顶部新增记录。
 
+## v0.3.3 - 2026-08-15
+
+- GitHub Release 改为极简 `LGK-Vector-skill` 包：根目录仅保留安装说明、许可证、`lgk-vector/` 运行时和 `test/`；不再分发 Rust 源码、CI、开发测试、维护文档或 Git 元数据；
+- 运行时目录采用可复制技能结构，内含 CLI/Host、PowerShell 包装器、初始化器、简版 `SKILL.md` 和 `AGENTS.md`；README 明确列出 Codex、OpenCode、Claude Code 的项目级与全局安装位置；
+- 自检和 onboarding 改为从 `lgk-vector/` 启动实际 EXE/Host，打包守卫断言源码、长文档和 CI 不会进入 Release。
+
 ## v0.3.2 - 2026-08-15
 
 - 源码根目录收敛为单一 `tests/`；将发行版 EXE 自检移至 `tests/release/`，打包时自动映射为 ZIP 中唯一面向用户的 `test/`，不再把开发/CI 测试带入发行包；

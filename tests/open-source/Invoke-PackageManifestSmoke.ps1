@@ -19,8 +19,12 @@ try {
     & (Join-Path $repository 'scripts\Sync-LGKVectorPackage.ps1') `
         -SourceRoot $repository `
         -DestinationRoot $initialPackage | Out-Null
+    Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'lgk-vector\SKILL.md') -PathType Leaf) 'release package must include the installable Skill'
+    Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'lgk-vector\Invoke-LGKVector.ps1') -PathType Leaf) 'release package must include the runtime wrapper'
     Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'test\Run-ExeSelfTest.ps1') -PathType Leaf) 'release package must map the EXE self-test to test/'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'tests') -PathType Container)) 'release package must exclude development tests/'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'src') -PathType Container)) 'release package must exclude source/'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'docs') -PathType Container)) 'release package must exclude long source documentation/'
 
     # Repack from a public-source fixture, not from the user ZIP.  The ZIP
     # deliberately omits tests/open-source, while this test needs that guard
@@ -66,7 +70,7 @@ try {
 
     [pscustomobject]@{
         valid = $true
-        assertions = 7
+        assertions = 11
         ignored_customer_files_copied = 0
     } | ConvertTo-Json
 } finally {

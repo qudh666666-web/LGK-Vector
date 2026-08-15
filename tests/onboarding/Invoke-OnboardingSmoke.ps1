@@ -121,7 +121,7 @@ try {
     Assert-True ($doctor.valid -eq $true) 'initializer doctor must report valid=true'
     Assert-True ($doctor.preflight -eq 'static') 'doctor must label itself as a static preflight'
     Assert-True ($doctor.davinci_executed -eq $false) 'doctor must not claim that DaVinci was executed'
-    Assert-True ($doctor.version -eq '0.3.2') 'initializer must use the current release binary'
+    Assert-True ($doctor.version -eq '0.3.3') 'initializer must use the current release binary'
     Assert-True ($doctorWatch.Elapsed.TotalSeconds -lt 2) 'doctor must complete in under 2 seconds on the public fixture'
 
     $updateDoctorOutput = @(& $wrapper -ProjectPath $project -ExecutablePath $executable -Request '{"func":"update_project"}' -ValidateOnly)
@@ -226,17 +226,18 @@ try {
         -SourceRoot $repository `
         -DestinationRoot $package `
         -IncludeBinaries | Out-Null
-    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector.exe') -PathType Leaf) 'release package must include the CLI'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector-host.exe') -PathType Leaf) 'release package must include the matching Host'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package '.github\workflows\ci.yml') -PathType Leaf) 'release package must include CI'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package '.github\workflows\release.yml') -PathType Leaf) 'release package must include the release workflow'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector\lgk-vector.exe') -PathType Leaf) 'release package must include the CLI'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector\lgk-vector-host.exe') -PathType Leaf) 'release package must include the matching Host'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector\Invoke-LGKVector.ps1') -PathType Leaf) 'release package must include the runtime wrapper'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'README.md') -PathType Leaf) 'release package must include the short install guide'
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'LICENSE') -PathType Leaf) 'release package must include LICENSE'
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'NOTICE') -PathType Leaf) 'release package must include NOTICE'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package 'SKILL.md') -PathType Leaf) 'release package must include the source-visible Skill'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package 'AGENTS.md') -PathType Leaf) 'release package must include the cross-agent instructions'
-    Assert-True (Test-Path -LiteralPath (Join-Path $package '.agents\skills\lgk-vector\SKILL.md') -PathType Leaf) 'release package must include the OpenCode-compatible Skill'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector\SKILL.md') -PathType Leaf) 'release package must include the installable Skill'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'lgk-vector\AGENTS.md') -PathType Leaf) 'release package must include cross-agent instructions'
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'test\\Run-ExeSelfTest.ps1') -PathType Leaf) 'release package must include the end-user EXE self-test'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $package 'tests') -PathType Container)) 'release package must not include development tests'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $package 'src') -PathType Container)) 'release package must not include Rust source'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $package '.github') -PathType Container)) 'release package must not include CI configuration'
     Assert-Fails -ExpectedText 'must be new or empty' -Action {
         & (Join-Path $repository 'scripts\Sync-LGKVectorPackage.ps1') `
             -SourceRoot $repository `
@@ -247,16 +248,17 @@ try {
     New-Item -ItemType Directory -Path $packageProject -Force | Out-Null
     Copy-Item -LiteralPath $dpa -Destination (Join-Path $packageProject 'PublicExample.dpa')
     Copy-Item -LiteralPath (Join-Path $project 'Config') -Destination $packageProject -Recurse
-    $packageInitializer = Join-Path $package 'scripts\Initialize-LGKVectorProject.ps1'
-    $packageWrapper = Join-Path $package 'scripts\Invoke-LGKVector.ps1'
+    $packageRuntime = Join-Path $package 'lgk-vector'
+    $packageInitializer = Join-Path $packageRuntime 'Initialize-LGKVectorProject.ps1'
+    $packageWrapper = Join-Path $packageRuntime 'Invoke-LGKVector.ps1'
     $packageDoctorOutput = @(& $packageInitializer -ProjectPath $packageProject -ToolPath $tool)
     $packageDoctor = (($packageDoctorOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ($packageDoctor.version -eq '0.3.2') 'packaged initializer must use packaged binaries by default'
+    Assert-True ($packageDoctor.version -eq '0.3.3') 'packaged initializer must use packaged binaries by default'
 
     $activeWrapper = $packageWrapper
     $activeProject = $packageProject
     $hostStarted = $true
-    $packageToken = Join-Path $package '.lgk-vector\host.token'
+    $packageToken = Join-Path $packageRuntime '.lgk-vector\host.token'
     Write-Utf8 -Path $packageToken -Content 'invalid'
     $packageModuleOutput = @(& $packageWrapper -ProjectPath $packageProject -Request '{"func":"find_module","module":"Com"}')
     $packageModule = (($packageModuleOutput | Out-String) | ConvertFrom-Json)

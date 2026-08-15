@@ -30,7 +30,7 @@ End users of a GitHub Release do not need Rust; Rust is required only when build
 
 ## Shared Windows installation
 
-For the shortest end-user path, download the `windows-x64.zip` asset from a GitHub Release and extract it to one shared directory such as `D:\Tools\LGK-Vector`. The archive contains a matching CLI/Host pair, scripts, source, one end-user `test` folder, and documentation; using that package does not require Rust. Source contributors use the single `tests` folder instead; development and CI tests are intentionally excluded from the ZIP.
+For the shortest end-user path, download the `LGK-Vector-skill-*-windows-x64.zip` asset from a GitHub Release and extract it. It is intentionally a small Agent Skill package: a `lgk-vector` runtime folder, the two matching EXEs, two PowerShell entry scripts, concise Agent instructions, legal notices, and one user-facing `test` folder. It contains no Rust source, CI, development tests, or long maintainer documentation; using it does not require Rust. The GitHub repository remains the complete source and maintenance distribution.
 
 On a computer without Rust or DaVinci, double-click `test\一键测试EXE.cmd` after extraction. The bundled synthetic self-test validates the two EXEs, Unicode paths, local ECUC inspection, template caching, and normal Host shutdown. It does not launch or imitate proprietary DaVinci; the target computer's lawful DaVinci/SIP installation is still required for generation and Project Update.
 
@@ -40,7 +40,7 @@ Keep one writable source tree for all projects, normally `D:\Tools\LGK-Vector`. 
 & "D:\Tools\LGK-Vector\scripts\Install-LGKVectorSkill.ps1"
 ```
 
-The default junction is `C:\Users\<user>\.codex\skills\lgk-vector`. Every Codex task then sees the D-drive `SKILL.md`, Rust source, tests, scripts, and documentation through that link. A cloned maintenance repository also has Git history; the downloadable Release ZIP deliberately does not contain `.git`. After that one-time installation, each AUTOSAR project keeps only its own `lgk-vector.json` in the DaVinci Cfg directory and calls the central wrapper:
+The default junction is `C:\Users\<user>\.codex\skills\lgk-vector`. Every Codex task then sees the D-drive source, tests, scripts, and documentation through that link. A cloned maintenance repository also has Git history; the downloadable Release ZIP deliberately does not contain `.git` or source code. After that one-time installation, each AUTOSAR project keeps only its own `lgk-vector.json` in the DaVinci Cfg directory and calls the central wrapper:
 
 ```powershell
 & "D:\Tools\LGK-Vector\scripts\Invoke-LGKVector.ps1" `
@@ -52,7 +52,7 @@ The canonical public repository is [qudh666666-web/LGK-Vector](https://github.co
 
 ## AI-agent compatibility
 
-`AGENTS.md` is the cross-agent project entry point: it describes the safe request workflow, the supported functions, and the authoritative scripts. OpenCode reads a root `AGENTS.md` directly, and the repository also carries `.agents\skills\lgk-vector\SKILL.md` for its native skill discovery. Codex users can additionally install the packaged root `SKILL.md` with `Install-LGKVectorSkill.ps1`. Other coding agents can follow `AGENTS.md` and invoke the same PowerShell wrapper; no Codex-specific runtime is required.
+The source repository uses root `AGENTS.md` and `.agents\skills\lgk-vector\SKILL.md` for maintainers. The Release ZIP uses a simple copyable skill layout: copy its complete `lgk-vector` folder into Codex, OpenCode, or Claude Code's skills directory. Its concise runtime `SKILL.md` and `AGENTS.md` then use the same PowerShell wrapper; no Codex-specific runtime is required.
 
 ## Project configuration
 

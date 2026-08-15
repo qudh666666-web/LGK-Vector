@@ -25,8 +25,13 @@ if ([string]::IsNullOrWhiteSpace($scriptDirectory)) {
     throw 'Cannot determine the LGK-Vector script location; pass -ExecutablePath explicitly.'
 }
 if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    # Release skills keep the wrapper beside the matching EXE.  The source
+    # tree keeps it under scripts/, so retain that layout as a fallback.
+    $runtimeExecutable = Join-Path $scriptDirectory 'lgk-vector.exe'
     $rootExecutable = Join-Path $scriptDirectory '..\lgk-vector.exe'
-    if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
+    if (Test-Path -LiteralPath $runtimeExecutable -PathType Leaf) {
+        $ExecutablePath = $runtimeExecutable
+    } elseif (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
         $ExecutablePath = $rootExecutable
     } else {
         $ExecutablePath = Join-Path $scriptDirectory '..\target\release\lgk-vector.exe'

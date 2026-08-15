@@ -2,7 +2,7 @@
 
 这个目录给没有 Rust 编译环境的使用者验证发布包。
 
-1. 完整解压 ZIP，不能只复制单个 `lgk-vector.exe`；CLI、Host、包装脚本和配对清单必须放在原来的相对位置。
+1. 完整解压 ZIP，不能只复制单个 `lgk-vector.exe`；`lgk-vector` 目录中的 CLI、Host、包装脚本和配对清单必须保持原来的相对位置。
 2. 双击 `一键测试EXE.cmd`。
 3. 看到 `"valid": true` 和 `LGK-Vector EXE self-test passed.` 即表示两只 EXE、中文/空格路径、本地 ECUC 查询、模板缓存和 Host 正常关闭均通过。
 
@@ -16,4 +16,4 @@
 }
 ```
 
-详细用法见包内 `docs/使用说明.md` 和 `docs/跨工程接入.md`。
+安装、使用和 Agent 接入见包根目录的 `README.md` 与 `lgk-vector/SKILL.md`。

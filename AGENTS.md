@@ -76,7 +76,8 @@ The source repository intentionally has one top-level `tests/` directory:
 - `tests/local_ops.rs`, `tests/onboarding/`, and `tests/open-source/` are for
   maintainers and CI.
 - `tests/release/` is the small synthetic EXE self-test source. The package
-  script maps it to the single user-facing `test/` directory in a release ZIP.
+  script maps it to the single user-facing `test/` directory in the minimal
+  Agent Skill ZIP; the runtime itself is mapped to `lgk-vector/`.
 
 For a downloaded release, double-click `test/一键测试EXE.cmd`. It verifies the
 two EXEs and local synthetic behavior; it does not prove a proprietary

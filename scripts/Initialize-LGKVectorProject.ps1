@@ -21,8 +21,13 @@ if ([string]::IsNullOrWhiteSpace($scriptDirectory)) {
     throw 'Cannot determine the LGK-Vector script location; pass -ExecutablePath explicitly.'
 }
 if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    # A minimal release keeps this initializer beside its EXE; source builds
+    # retain the historical scripts/ location and fall back below.
+    $runtimeExecutable = Join-Path $scriptDirectory 'lgk-vector.exe'
     $rootExecutable = Join-Path $scriptDirectory '..\lgk-vector.exe'
-    if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
+    if (Test-Path -LiteralPath $runtimeExecutable -PathType Leaf) {
+        $ExecutablePath = $runtimeExecutable
+    } elseif (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
         $ExecutablePath = $rootExecutable
     } else {
         $ExecutablePath = Join-Path $scriptDirectory '..\target\release\lgk-vector.exe'

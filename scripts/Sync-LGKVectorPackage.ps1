@@ -42,25 +42,20 @@ if (Test-Path -LiteralPath $destination) {
     New-Item -ItemType Directory -Path $destination | Out-Null
 }
 
-# 使用明确清单，避免把 .git、target、客户文件或本地 Token 带进工程包。
-$files = @(
-    '.gitignore'
-    '.gitattributes'
-    'Cargo.toml'
-    'Cargo.lock'
-    'LICENSE'
-    'NOTICE'
-    'README.md'
-    'CHANGELOG.md'
-    'CONTRIBUTING.md'
-    'SECURITY.md'
-    'SKILL.md'
-    'AGENTS.md'
-    'agents\openai.yaml'
+# The public repository is the source distribution.  A release is deliberately
+# smaller: only the agent-facing runtime, legal notices, a short install guide,
+# and a synthetic EXE self-test.  Do not copy source, CI, development tests,
+# or long maintainer documentation into this end-user skill package.
+$packageFiles = @(
+    @{ source = 'LICENSE'; destination = 'LICENSE' }
+    @{ source = 'NOTICE'; destination = 'NOTICE' }
+    @{ source = 'assets\release-package\README.md'; destination = 'README.md' }
+    @{ source = 'assets\release-package\SKILL.md'; destination = 'lgk-vector\SKILL.md' }
+    @{ source = 'assets\release-package\AGENTS.md'; destination = 'lgk-vector\AGENTS.md' }
+    @{ source = 'scripts\Invoke-LGKVector.ps1'; destination = 'lgk-vector\Invoke-LGKVector.ps1' }
+    @{ source = 'scripts\Initialize-LGKVectorProject.ps1'; destination = 'lgk-vector\Initialize-LGKVectorProject.ps1' }
 )
-$directories = @('.agents', '.github', 'assets', 'docs', 'scripts', 'src')
 $releaseTestPrefix = 'tests/release/'
-$approvedFiles = @($files | ForEach-Object { $_.Replace('\', '/') })
 
 $repositoryRootOutput = @(& git -C $source rev-parse --show-toplevel 2>&1)
 if ($LASTEXITCODE -ne 0) {
@@ -86,33 +81,21 @@ if ($LASTEXITCODE -ne 0) {
 }
 $manifest = @($manifest | ForEach-Object { ([string]$_).Trim() } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
 
-function Test-ApprovedManifestPath([string]$RelativePath) {
-    $normalized = $RelativePath.Replace('\', '/')
-    if ($approvedFiles -contains $normalized) {
-        return $true
-    }
-    # Keep all source tests below tests/.  Only this small synthetic self-test
-    # belongs in the end-user archive, where it is mapped to test/.
-    if ($normalized.StartsWith($releaseTestPrefix, [StringComparison]::Ordinal)) {
-        return $true
-    }
-    foreach ($directory in $directories) {
-        $prefix = $directory.Replace('\', '/').TrimEnd('/') + '/'
-        if ($normalized.StartsWith($prefix, [StringComparison]::Ordinal)) {
-            return $true
-        }
-    }
-    return $false
-}
-
-foreach ($relative in $files) {
-    $sourceFile = Join-Path $source $relative
+foreach ($entry in $packageFiles) {
+    $sourceFile = Join-Path $source $entry.source
     if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
         throw "Required source file is missing: $sourceFile"
     }
+    $normalized = $entry.source.Replace('\', '/')
+    if ($manifest -notcontains $normalized) {
+        throw "Required release file is not tracked or is ignored: $normalized"
+    }
+    $destinationFile = Join-Path $destination $entry.destination
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destinationFile) | Out-Null
+    Copy-Item -LiteralPath $sourceFile -Destination $destinationFile -Force
 }
 
-foreach ($relative in @($manifest | Where-Object { Test-ApprovedManifestPath $_ })) {
+foreach ($relative in @($manifest | Where-Object { $_.Replace('\', '/').StartsWith($releaseTestPrefix, [StringComparison]::Ordinal) })) {
     $sourceFile = Join-Path $source $relative
     if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
         continue
@@ -135,23 +118,24 @@ if ($IncludeBinaries) {
         if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
             throw "Release binary is missing; run cargo build --release --locked first: $binary"
         }
-        Copy-Item -LiteralPath $binary -Destination (Join-Path $destination $name) -Force
+        Copy-Item -LiteralPath $binary -Destination (Join-Path $destination (Join-Path 'lgk-vector' $name)) -Force
     }
-    $cliBinary = Join-Path $destination 'lgk-vector.exe'
-    $hostBinary = Join-Path $destination 'lgk-vector-host.exe'
+    $runtime = Join-Path $destination 'lgk-vector'
+    $cliBinary = Join-Path $runtime 'lgk-vector.exe'
+    $hostBinary = Join-Path $runtime 'lgk-vector-host.exe'
     $pairManifest = [ordered]@{
         version = (& $cliBinary --version | Out-String).Trim()
         cli_sha256 = (Get-FileHash -LiteralPath $cliBinary -Algorithm SHA256).Hash
         host_sha256 = (Get-FileHash -LiteralPath $hostBinary -Algorithm SHA256).Hash
     } | ConvertTo-Json
     [System.IO.File]::WriteAllText(
-        (Join-Path $destination 'lgk-vector-pair.json'),
+        (Join-Path $runtime 'lgk-vector-pair.json'),
         $pairManifest,
         [System.Text.UTF8Encoding]::new($false)
     )
 }
 
-$allowedExecutables = @('lgk-vector.exe', 'lgk-vector-host.exe')
+$allowedExecutables = @('lgk-vector/lgk-vector.exe', 'lgk-vector/lgk-vector-host.exe')
 $forbiddenExtensions = @(
     '.dll', '.log', '.tmp', '.user', '.dpa', '.arxml', '.dbc', '.a2l',
     '.lic', '.license', '.pem', '.key', '.pfx', '.hex', '.elf', '.map',

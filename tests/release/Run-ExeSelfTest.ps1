@@ -22,9 +22,10 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $OutputEncoding = $utf8NoBom
 
 $package = (Resolve-Path -LiteralPath $PackageRoot -ErrorAction Stop).Path
-$wrapper = Join-Path $package 'scripts\Invoke-LGKVector.ps1'
-$cli = Join-Path $package 'lgk-vector.exe'
-$hostExecutable = Join-Path $package 'lgk-vector-host.exe'
+$runtime = Join-Path $package 'lgk-vector'
+$wrapper = Join-Path $runtime 'Invoke-LGKVector.ps1'
+$cli = Join-Path $runtime 'lgk-vector.exe'
+$hostExecutable = Join-Path $runtime 'lgk-vector-host.exe'
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ('lgk-vector-exe-selftest-中文 空格-' + [Guid]::NewGuid().ToString('N'))
 $project = Join-Path $temporaryRoot 'Cfg'
 $tool = Join-Path $temporaryRoot 'SIP'

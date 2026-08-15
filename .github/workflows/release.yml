@@ -47,15 +47,15 @@ jobs:
           .\tests\open-source\Invoke-PackageManifestSmoke.ps1
           .\tests\onboarding\Invoke-OnboardingSmoke.ps1
 
-      - name: Build source-visible Windows package
+      - name: Build minimal Windows Agent Skill package
         shell: pwsh
         run: |
-          $package = Join-Path $PWD 'dist\LGK-Vector'
+          $package = Join-Path $PWD 'dist\LGK-Vector-skill'
           .\scripts\Sync-LGKVectorPackage.ps1 `
             -SourceRoot $PWD `
             -DestinationRoot $package `
             -IncludeBinaries | Out-Null
-          $archive = Join-Path $PWD "dist\LGK-Vector-${{ github.ref_name }}-windows-x64.zip"
+          $archive = Join-Path $PWD "dist\LGK-Vector-skill-${{ github.ref_name }}-windows-x64.zip"
           Compress-Archive -LiteralPath $package -DestinationPath $archive
           "LGK_RELEASE_ARCHIVE=$archive" | Out-File -FilePath $env:GITHUB_ENV -Append
 
