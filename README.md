@@ -30,7 +30,7 @@ End users of a GitHub Release do not need Rust; Rust is required only when build
 
 ## Shared Windows installation
 
-For the shortest end-user path, download the `windows-x64.zip` asset from a GitHub Release and extract it to one shared directory such as `D:\Tools\LGK-Vector`. The archive contains a matching CLI/Host pair, scripts, source, tests, and documentation; using that package does not require Rust.
+For the shortest end-user path, download the `windows-x64.zip` asset from a GitHub Release and extract it to one shared directory such as `D:\Tools\LGK-Vector`. The archive contains a matching CLI/Host pair, scripts, source, one end-user `test` folder, and documentation; using that package does not require Rust. Source contributors use the single `tests` folder instead; development and CI tests are intentionally excluded from the ZIP.
 
 On a computer without Rust or DaVinci, double-click `test\一键测试EXE.cmd` after extraction. The bundled synthetic self-test validates the two EXEs, Unicode paths, local ECUC inspection, template caching, and normal Host shutdown. It does not launch or imitate proprietary DaVinci; the target computer's lawful DaVinci/SIP installation is still required for generation and Project Update.
 
@@ -49,6 +49,10 @@ The default junction is `C:\Users\<user>\.codex\skills\lgk-vector`. Every Codex 
 ```
 
 The canonical public repository is [qudh666666-web/LGK-Vector](https://github.com/qudh666666-web/LGK-Vector). Public releases use an audited clean-root history: the private development history may contain personal author metadata or superseded product names even when the current tree is clean.
+
+## AI-agent compatibility
+
+`AGENTS.md` is the cross-agent project entry point: it describes the safe request workflow, the supported functions, and the authoritative scripts. OpenCode reads a root `AGENTS.md` directly, and the repository also carries `.agents\skills\lgk-vector\SKILL.md` for its native skill discovery. Codex users can additionally install the packaged root `SKILL.md` with `Install-LGKVectorSkill.ps1`. Other coding agents can follow `AGENTS.md` and invoke the same PowerShell wrapper; no Codex-specific runtime is required.
 
 ## Project configuration
 

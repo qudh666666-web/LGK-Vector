@@ -11,4 +11,3 @@ if not "%LGK_TEST_EXIT%"=="0" (
 )
 pause
 exit /b %LGK_TEST_EXIT%
-

@@ -178,4 +178,3 @@ try {
         Write-Warning "Refusing to remove unexpected self-test path: $resolvedTemporary"
     }
 }
-

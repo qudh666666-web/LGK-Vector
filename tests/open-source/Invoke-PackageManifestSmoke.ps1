@@ -19,9 +19,24 @@ try {
     & (Join-Path $repository 'scripts\Sync-LGKVectorPackage.ps1') `
         -SourceRoot $repository `
         -DestinationRoot $initialPackage | Out-Null
+    Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'test\Run-ExeSelfTest.ps1') -PathType Leaf) 'release package must map the EXE self-test to test/'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'tests') -PathType Container)) 'release package must exclude development tests/'
 
+    # Repack from a public-source fixture, not from the user ZIP.  The ZIP
+    # deliberately omits tests/open-source, while this test needs that guard
+    # available to exercise a second package operation.
     $fixture = Join-Path $temporaryRoot 'fixture-repository'
-    Copy-Item -LiteralPath $initialPackage -Destination $fixture -Recurse
+    New-Item -ItemType Directory -Path $fixture -Force | Out-Null
+    $sourceManifest = @(& git -C $repository -c core.quotepath=false ls-files --cached --others --exclude-standard)
+    foreach ($relative in $sourceManifest) {
+        $sourceFile = Join-Path $repository $relative
+        if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
+            continue
+        }
+        $fixtureFile = Join-Path $fixture $relative
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $fixtureFile) | Out-Null
+        Copy-Item -LiteralPath $sourceFile -Destination $fixtureFile -Force
+    }
     Assert-True (Test-Path -LiteralPath (Join-Path $fixture '.gitignore') -PathType Leaf) 'fixture must retain dotfiles'
 
     & git -C $fixture init | Out-Null
@@ -51,7 +66,7 @@ try {
 
     [pscustomobject]@{
         valid = $true
-        assertions = 5
+        assertions = 7
         ignored_customer_files_copied = 0
     } | ConvertTo-Json
 } finally {

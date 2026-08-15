@@ -2,6 +2,12 @@
 
 版本号说明发布顺序，Git 提交号用于定位准确源码。每次功能、接口、包装器或 Skill 改动，都必须在顶部新增记录。
 
+## v0.3.2 - 2026-08-15
+
+- 源码根目录收敛为单一 `tests/`；将发行版 EXE 自检移至 `tests/release/`，打包时自动映射为 ZIP 中唯一面向用户的 `test/`，不再把开发/CI 测试带入发行包；
+- 新增根目录 `AGENTS.md` 作为跨 Agent 入口：Codex 可继续使用 `SKILL.md`，OpenCode 和其他遵循 `AGENTS.md` 的 Agent 使用相同请求、验证和正常关闭流程；
+- 验证：打包守卫断言发行包存在 `test/Run-ExeSelfTest.ps1`、不存在 `tests/`，onboarding 从生成包实际调用 CLI/Host。
+
 ## v0.3.1 - 2026-08-15
 
 - 修复 Windows PowerShell 在部分 `-File` 启动路径下将 `$PSScriptRoot` 置空时，发布包“一键测试 EXE”、包装器、初始化器和打包脚本无法定位自身目录的问题；现统一回退到 `$MyInvocation.MyCommand.Path`，不可识别时给出明确错误；

@@ -55,9 +55,11 @@ $files = @(
     'CONTRIBUTING.md'
     'SECURITY.md'
     'SKILL.md'
+    'AGENTS.md'
     'agents\openai.yaml'
 )
-$directories = @('.github', 'assets', 'docs', 'scripts', 'src', 'test', 'tests')
+$directories = @('.agents', '.github', 'assets', 'docs', 'scripts', 'src')
+$releaseTestPrefix = 'tests/release/'
 $approvedFiles = @($files | ForEach-Object { $_.Replace('\', '/') })
 
 $repositoryRootOutput = @(& git -C $source rev-parse --show-toplevel 2>&1)
@@ -89,6 +91,11 @@ function Test-ApprovedManifestPath([string]$RelativePath) {
     if ($approvedFiles -contains $normalized) {
         return $true
     }
+    # Keep all source tests below tests/.  Only this small synthetic self-test
+    # belongs in the end-user archive, where it is mapped to test/.
+    if ($normalized.StartsWith($releaseTestPrefix, [StringComparison]::Ordinal)) {
+        return $true
+    }
     foreach ($directory in $directories) {
         $prefix = $directory.Replace('\', '/').TrimEnd('/') + '/'
         if ($normalized.StartsWith($prefix, [StringComparison]::Ordinal)) {
@@ -110,7 +117,13 @@ foreach ($relative in @($manifest | Where-Object { Test-ApprovedManifestPath $_ 
     if (-not (Test-Path -LiteralPath $sourceFile -PathType Leaf)) {
         continue
     }
-    $destinationFile = Join-Path $destination $relative
+    $normalized = $relative.Replace('\', '/')
+    if ($normalized.StartsWith($releaseTestPrefix, [StringComparison]::Ordinal)) {
+        $destinationRelative = 'test/' + $normalized.Substring($releaseTestPrefix.Length)
+    } else {
+        $destinationRelative = $relative
+    }
+    $destinationFile = Join-Path $destination $destinationRelative
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destinationFile) | Out-Null
     Copy-Item -LiteralPath $sourceFile -Destination $destinationFile -Force
 }

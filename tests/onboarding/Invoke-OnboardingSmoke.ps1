@@ -121,7 +121,7 @@ try {
     Assert-True ($doctor.valid -eq $true) 'initializer doctor must report valid=true'
     Assert-True ($doctor.preflight -eq 'static') 'doctor must label itself as a static preflight'
     Assert-True ($doctor.davinci_executed -eq $false) 'doctor must not claim that DaVinci was executed'
-    Assert-True ($doctor.version -eq '0.3.1') 'initializer must use the current release binary'
+    Assert-True ($doctor.version -eq '0.3.2') 'initializer must use the current release binary'
     Assert-True ($doctorWatch.Elapsed.TotalSeconds -lt 2) 'doctor must complete in under 2 seconds on the public fixture'
 
     $updateDoctorOutput = @(& $wrapper -ProjectPath $project -ExecutablePath $executable -Request '{"func":"update_project"}' -ValidateOnly)
@@ -233,6 +233,10 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'LICENSE') -PathType Leaf) 'release package must include LICENSE'
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'NOTICE') -PathType Leaf) 'release package must include NOTICE'
     Assert-True (Test-Path -LiteralPath (Join-Path $package 'SKILL.md') -PathType Leaf) 'release package must include the source-visible Skill'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'AGENTS.md') -PathType Leaf) 'release package must include the cross-agent instructions'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package '.agents\skills\lgk-vector\SKILL.md') -PathType Leaf) 'release package must include the OpenCode-compatible Skill'
+    Assert-True (Test-Path -LiteralPath (Join-Path $package 'test\\Run-ExeSelfTest.ps1') -PathType Leaf) 'release package must include the end-user EXE self-test'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $package 'tests') -PathType Container)) 'release package must not include development tests'
     Assert-Fails -ExpectedText 'must be new or empty' -Action {
         & (Join-Path $repository 'scripts\Sync-LGKVectorPackage.ps1') `
             -SourceRoot $repository `
@@ -247,7 +251,7 @@ try {
     $packageWrapper = Join-Path $package 'scripts\Invoke-LGKVector.ps1'
     $packageDoctorOutput = @(& $packageInitializer -ProjectPath $packageProject -ToolPath $tool)
     $packageDoctor = (($packageDoctorOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ($packageDoctor.version -eq '0.3.1') 'packaged initializer must use packaged binaries by default'
+    Assert-True ($packageDoctor.version -eq '0.3.2') 'packaged initializer must use packaged binaries by default'
 
     $activeWrapper = $packageWrapper
     $activeProject = $packageProject
