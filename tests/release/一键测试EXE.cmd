@@ -5,9 +5,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0Run-ExeSelfTest.ps
 set "LGK_TEST_EXIT=%ERRORLEVEL%"
 echo.
 if not "%LGK_TEST_EXIT%"=="0" (
-  echo LGK-Vector EXE self-test failed. Please copy all output when reporting the problem.
+  echo LGK-Vector EXE 自检失败。反馈问题时请复制完整输出。
 ) else (
-  echo LGK-Vector EXE self-test passed.
+  echo LGK-Vector EXE 自检通过。
 )
 pause
 exit /b %LGK_TEST_EXIT%

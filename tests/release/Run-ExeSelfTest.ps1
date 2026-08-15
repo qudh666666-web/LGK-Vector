@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter()]
     [string]$PackageRoot
@@ -42,7 +42,7 @@ function Write-Utf8([string]$Path, [string]$Content) {
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) {
-        throw "Self-test assertion failed: $Message"
+        throw "自检断言失败：$Message"
     }
     $script:assertions++
 }
@@ -61,10 +61,10 @@ function Test-Port([int]$Port) {
 
 try {
     foreach ($path in @($wrapper, $cli, $hostExecutable)) {
-        Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "required package file is missing: $path"
+        Assert-True (Test-Path -LiteralPath $path -PathType Leaf) "发布包缺少必要文件：$path"
     }
     if ((Test-Port 32483) -or (Test-Port 32484)) {
-        throw 'LGK-Vector Host is already running. Close the other task with shutdown_host, then run this self-test again.'
+        throw '检测到 LGK-Vector Host 已在运行。请先在另一任务中调用 shutdown_host 正常关闭，再重新运行自检。'
     }
 
     New-Item -ItemType Directory -Path $project, $tool -Force | Out-Null
@@ -120,36 +120,36 @@ try {
     $hostIdentity = (& $hostExecutable --version | Out-String).Trim()
     $cliComparableIdentity = $cliIdentity -replace '^lgk-vector ', ''
     $hostComparableIdentity = $hostIdentity -replace '^lgk-vector-host ', ''
-    Assert-True ([string]::Equals($cliComparableIdentity, $hostComparableIdentity, [StringComparison]::Ordinal)) 'CLI and Host identities differ'
+    Assert-True ([string]::Equals($cliComparableIdentity, $hostComparableIdentity, [StringComparison]::Ordinal)) 'CLI 与 Host 的版本标识不一致'
 
     $hostStarted = $true
     $moduleOutput = @(& $wrapper -ProjectPath $project -Request '{"func":"find_module","module":"Com","note":"中文路径"}')
     $module = (($moduleOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ($module.definition_ref -eq '/SelfTest/Com') 'find_module returned the wrong definition ref'
+    Assert-True ($module.definition_ref -eq '/SelfTest/Com') 'find_module 返回了错误的 definition ref'
 
     $firstTemplateWatch = [Diagnostics.Stopwatch]::StartNew()
     $templateOutput = @(& $wrapper -ProjectPath $project -Request '{"func":"find_module_template","module":"Com"}')
     $firstTemplateWatch.Stop()
     $template = (($templateOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ($template.containers[0].name -eq 'ComConfig') 'compact template hierarchy is incorrect'
-    Assert-True ($template.PSObject.Properties.Name -notcontains 'definitions') 'default template response is not compact'
+    Assert-True ($template.containers[0].name -eq 'ComConfig') '精简模板层级不正确'
+    Assert-True ($template.PSObject.Properties.Name -notcontains 'definitions') '默认模板响应不够精简'
 
     $warmTemplateWatch = [Diagnostics.Stopwatch]::StartNew()
     $null = & $wrapper -ProjectPath $project -Request '{"func":"find_module_template","module":"Com"}'
     $warmTemplateWatch.Stop()
-    Assert-True ($warmTemplateWatch.Elapsed.TotalSeconds -lt 2) 'resident template cache is unexpectedly slow'
+    Assert-True ($warmTemplateWatch.Elapsed.TotalSeconds -lt 2) '常驻模板缓存耗时异常'
 
     $definitionOutput = @(& $wrapper -ProjectPath $project -Request '{"func":"get_param_definition","module":"Com","params":"ComBitPosition"}')
     $definition = (($definitionOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ($definition.definitions[0].range.max -eq '63') 'parameter definition range is incorrect'
+    Assert-True ($definition.definitions[0].range.max -eq '63') '参数定义范围不正确'
 
     $inspectOutput = @(& $wrapper -ProjectPath $project -Request '{"func":"inspect_ecuc_containers","module":"Com","container":"ComSignal","params":["ComBitPosition"]}')
     $inspect = (($inspectOutput | Out-String) | ConvertFrom-Json)
-    Assert-True ([string]$inspect.values.ComBitPosition -eq '8') 'saved ECUC value was not read correctly'
+    Assert-True ([string]$inspect.values.ComBitPosition -eq '8') '已保存的 ECUC 参数值读取错误'
 
     & $wrapper -ProjectPath $project -Request '{"func":"shutdown_host"}' | Out-Null
     $hostStarted = $false
-    Assert-True (-not (Test-Port 32483) -and -not (Test-Port 32484)) 'Host ports were not released after shutdown'
+    Assert-True (-not (Test-Port 32483) -and -not (Test-Port 32484)) 'shutdown 后 Host 端口没有释放'
 
     [pscustomobject]@{
         valid = $true
@@ -157,14 +157,14 @@ try {
         version = $cliIdentity
         cold_template_ms = $firstTemplateWatch.ElapsedMilliseconds
         warm_template_ms = $warmTemplateWatch.ElapsedMilliseconds
-        note = 'This self-test validates the packaged EXEs and local ECUC parsing. It does not launch proprietary DaVinci.'
+        note = '本自检验证包内 EXE 配对和本地 ECUC 解析，不会启动专有 DaVinci。'
     } | ConvertTo-Json
 } finally {
     if ($hostStarted) {
         try {
             & $wrapper -ProjectPath $project -Request '{"func":"shutdown_host"}' | Out-Null
         } catch {
-            Write-Warning "Failed to stop self-test Host: $($_.Exception.Message)"
+            Write-Warning "未能正常关闭自检 Host：$($_.Exception.Message)"
         }
     }
     $tempBase = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
@@ -176,6 +176,6 @@ try {
             Remove-Item -LiteralPath $resolvedTemporary -Recurse -Force
         }
     } else {
-        Write-Warning "Refusing to remove unexpected self-test path: $resolvedTemporary"
+        Write-Warning "拒绝删除非预期自检临时目录：$resolvedTemporary"
     }
 }

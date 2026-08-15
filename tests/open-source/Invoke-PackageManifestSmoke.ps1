@@ -22,6 +22,8 @@ try {
     Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'lgk-vector\SKILL.md') -PathType Leaf) 'release package must include the installable Skill'
     Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'lgk-vector\Invoke-LGKVector.ps1') -PathType Leaf) 'release package must include the runtime wrapper'
     Assert-True (Test-Path -LiteralPath (Join-Path $initialPackage 'test\Run-ExeSelfTest.ps1') -PathType Leaf) 'release package must map the EXE self-test to test/'
+    $selfTestBytes = [System.IO.File]::ReadAllBytes((Join-Path $initialPackage 'test\Run-ExeSelfTest.ps1'))
+    Assert-True ($selfTestBytes.Length -ge 3 -and $selfTestBytes[0] -eq 0xEF -and $selfTestBytes[1] -eq 0xBB -and $selfTestBytes[2] -eq 0xBF) 'Chinese Windows PowerShell self-test must use UTF-8 BOM'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'tests') -PathType Container)) 'release package must exclude development tests/'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'src') -PathType Container)) 'release package must exclude source/'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $initialPackage 'docs') -PathType Container)) 'release package must exclude long source documentation/'
@@ -70,7 +72,7 @@ try {
 
     [pscustomobject]@{
         valid = $true
-        assertions = 11
+        assertions = 12
         ignored_customer_files_copied = 0
     } | ConvertTo-Json
 } finally {
