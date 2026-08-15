@@ -1,5 +1,13 @@
 # LGK-Vector 更新记录
 
+## Unreleased - 2026-08-15
+
+- 实现提交：本次变更提交（提交后以 Git 日志中的 `Reject mutating request batches in wrapper` 定位）；
+- 包装器在启动 Host 前拒绝多项数组中的 `edit_file`、`auto_solve_errors`、`generate_code`、`update_project`、`import_dbc` 与 `shutdown_host`，使其与既有 Rust 调度约束一致；
+- 将 `Set-StrictMode` 与 `$ErrorActionPreference` 前移至参数声明之后；错误输出增加退出码与请求文件路径；白名单注释指向真实 Rust 注册位置；源码 Junction 安装器补充 Codex、Claude Code、OpenCode 的常见路径；发行包守卫拒绝 `.pdb`；
+- 验证：5 个受改动影响的 PowerShell 文件通过语法解析；`Invoke-PackageManifestSmoke.ps1` 13 项断言、`Invoke-OnboardingSmoke.ps1` 46 项断言、从新建 Release 目录运行的 `Run-ExeSelfTest.ps1` 11 项断言均通过；常规公开内容守卫通过，Host 端口已释放；
+- 限制：当前命令环境未发现 `cargo`，故未运行 Rust 格式、Clippy、测试、构建及依赖许可证守卫；中央维护仓库保留私有历史，`-IncludeHistory` 守卫按设计失败。本次不发布新二进制、不创建标签，公开版本仍为 `v0.3.5`。
+
 版本号说明发布顺序，Git 提交号用于定位准确源码。每次功能、接口、包装器或 Skill 改动，都必须在顶部新增记录。
 
 ## v0.3.5 - 2026-08-15

@@ -70,9 +70,27 @@ try {
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $repacked 'docs\CustomerSecret.dbc'))) 'ignored DBC must not be copied into the package'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $repacked 'assets\CustomerSecret.arxml'))) 'ignored ARXML must not be copied into the package'
 
+    $trackedPdb = Join-Path $fixture 'tests\release\accidental.pdb'
+    [System.IO.File]::WriteAllText($trackedPdb, 'debug symbols must never enter a release package')
+    & git -C $fixture add -- 'tests/release/accidental.pdb'
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Unable to stage the synthetic PDB package-leak fixture'
+    }
+    $pdbPackage = Join-Path $temporaryRoot 'pdb-package'
+    try {
+        & (Join-Path $fixture 'scripts\Sync-LGKVectorPackage.ps1') `
+            -SourceRoot $fixture `
+            -DestinationRoot $pdbPackage | Out-Null
+        throw 'Expected the package guard to reject a tracked PDB file'
+    } catch {
+        if ($_.Exception.Message -notlike '*Release package contains forbidden files*') {
+            throw
+        }
+    }
+
     [pscustomobject]@{
         valid = $true
-        assertions = 12
+        assertions = 13
         ignored_customer_files_copied = 0
     } | ConvertTo-Json
 } finally {

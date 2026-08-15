@@ -4,6 +4,11 @@ param(
     [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
 
     [Parameter()]
+    # Common paths:
+    #   Codex (default): $env:USERPROFILE\.codex\skills\lgk-vector
+    #   Claude Code:     $env:USERPROFILE\.claude\skills\lgk-vector
+    #   OpenCode:        $env:USERPROFILE\.config\opencode\skills\lgk-vector
+    # This source-tree junction installer accepts any dedicated SkillPath.
     [string]$SkillPath = (Join-Path $env:USERPROFILE '.codex\skills\lgk-vector')
 )
 

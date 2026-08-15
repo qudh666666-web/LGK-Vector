@@ -18,6 +18,16 @@ param(
     [switch]$ValidateOnly
 )
 
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+# Match the stable Windows behavior of the established Vector bridge: JSON,
+# Chinese paths, DaVinci diagnostics and redirected output all use UTF-8.
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[Console]::InputEncoding = $utf8NoBom
+[Console]::OutputEncoding = $utf8NoBom
+$OutputEncoding = $utf8NoBom
+
 # Avoid relying on $PSScriptRoot: it is empty in some Windows PowerShell
 # launch paths even when the script itself was supplied with -File.
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -37,16 +47,6 @@ if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
         $ExecutablePath = Join-Path $scriptDirectory '..\target\release\lgk-vector.exe'
     }
 }
-
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-
-# Match the stable Windows behavior of the established Vector bridge: JSON,
-# Chinese paths, DaVinci diagnostics and redirected output all use UTF-8.
-$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-[Console]::InputEncoding = $utf8NoBom
-[Console]::OutputEncoding = $utf8NoBom
-$OutputEncoding = $utf8NoBom
 
 # 先把用户输入统一成绝对路径，后续 Rust 端也会再次校验。
 $project = (Resolve-Path -LiteralPath $ProjectPath -ErrorAction Stop).Path
@@ -121,6 +121,9 @@ try {
     }
 
     $requestObject = [System.IO.File]::ReadAllText($requestPath) | ConvertFrom-Json -ErrorAction Stop
+    # Keep in sync with CommandDispatcher::validate_one in
+    # src/daemon/commands.rs. Rust remains authoritative for request behavior;
+    # this list exists only to reject misspelled functions before Host startup.
     $allowedFunctions = @(
         'inspect_ecuc_containers',
         'find_module',
@@ -150,6 +153,17 @@ try {
             throw "Unsupported LGK-Vector function: $($item.func)"
         }
     }
+    $mutatingFunctions = @(
+        'edit_file', 'auto_solve_errors', 'generate_code',
+        'update_project', 'import_dbc', 'shutdown_host'
+    )
+    if ($requestObject -is [System.Array] -and $requestObject.Count -gt 1) {
+        foreach ($item in $requestItems) {
+            if ($mutatingFunctions -contains [string]$item.func) {
+                throw "Mutating function '$($item.func)' must be sent as a standalone request, not inside a multi-item array"
+            }
+        }
+    }
 
     if ($ValidateOnly) {
         Push-Location -LiteralPath $project
@@ -177,7 +191,7 @@ try {
         $requestOutput = @(& $executable --request-file $requestPath 2>&1)
         $requestExitCode = $LASTEXITCODE
         if ($requestExitCode -ne 0) {
-            throw "Bridge request failed: $($requestOutput -join [Environment]::NewLine)"
+            throw "Bridge request failed (exit $requestExitCode, request: $requestPath): $($requestOutput -join [Environment]::NewLine)"
         }
         $requestOutput | Write-Output
     } finally {

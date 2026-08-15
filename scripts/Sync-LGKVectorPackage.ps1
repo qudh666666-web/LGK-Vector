@@ -139,7 +139,7 @@ $allowedExecutables = @('lgk-vector/lgk-vector.exe', 'lgk-vector/lgk-vector-host
 $forbiddenExtensions = @(
     '.dll', '.log', '.tmp', '.user', '.dpa', '.arxml', '.dbc', '.a2l',
     '.lic', '.license', '.pem', '.key', '.pfx', '.hex', '.elf', '.map',
-    '.sre', '.sd3'
+    '.sre', '.sd3', '.pdb'
 )
 $packageLeaks = @(Get-ChildItem -LiteralPath $destination -Recurse -Force -File | Where-Object {
     $relative = $_.FullName.Substring($destination.TrimEnd('\').Length).TrimStart('\').Replace('\', '/')

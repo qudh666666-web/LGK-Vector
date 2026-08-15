@@ -156,6 +156,10 @@ try {
     Assert-Fails -ExpectedText 'module is required' -Action {
         & $wrapper -ProjectPath $project -ExecutablePath $executable -Request '{"func":"find_module"}' -ValidateOnly
     }
+    Assert-Fails -ExpectedText "Mutating function 'edit_file' must be sent as a standalone request" -Action {
+        & $wrapper -ProjectPath $project -ExecutablePath $executable -Request '[{"func":"find_module"},{"func":"edit_file"}]' -ValidateOnly
+    }
+    Assert-True (-not (Test-HostPort -Port 32483) -and -not (Test-HostPort -Port 32484)) 'wrapper must reject a mutating batch before starting a Host'
 
     $localWatch = [Diagnostics.Stopwatch]::StartNew()
     $hostStarted = $true
@@ -182,6 +186,12 @@ try {
     $bomOutput = @(& $wrapper -ProjectPath $project -ExecutablePath $executable -RequestFile $bomRequest)
     $bomModule = (($bomOutput | Out-String) | ConvertFrom-Json)
     Assert-True ($bomModule.definition_ref -eq '/PublicStack/Com') 'UTF-8 BOM request files must be accepted end to end'
+
+    $failingRequest = Join-Path $temporaryRoot 'failing-request.json'
+    Write-Utf8 -Path $failingRequest -Content '{"func":"find_module","module":"Missing"}'
+    Assert-Fails -ExpectedText "request: $failingRequest" -Action {
+        & $wrapper -ProjectPath $project -ExecutablePath $executable -RequestFile $failingRequest
+    }
 
     Assert-Fails -ExpectedText 'file changed' -Action {
         $request = [ordered]@{
