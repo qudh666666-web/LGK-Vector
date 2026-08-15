@@ -25,7 +25,7 @@ cargo build --release --locked
 & .\tests\onboarding\Invoke-OnboardingSmoke.ps1
 ```
 
-The release binaries are `lgk-vector` and `lgk-vector-host`. On Windows, keep both `.exe` files in the same directory. Their `--version` output includes the semantic version, Host protocol, and source build ID; the wrapper refuses a partially rebuilt or stale pair even when both still say `0.3.0`.
+The release binaries are `lgk-vector` and `lgk-vector-host`. On Windows, keep both `.exe` files in the same directory. Their `--version` output includes the semantic version, Host protocol, and source build ID; the wrapper refuses a partially rebuilt or stale pair even when the semantic version alone still matches.
 End users of a GitHub Release do not need Rust; Rust is required only when building or contributing from source.
 
 ## Shared Windows installation

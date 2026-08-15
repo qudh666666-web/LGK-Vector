@@ -4,11 +4,19 @@ param(
     [string]$DestinationRoot,
 
     [Parameter()]
-    [string]$SourceRoot = (Split-Path -Parent $PSScriptRoot),
+    [string]$SourceRoot,
 
     [Parameter()]
     [switch]$IncludeBinaries
 )
+
+if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
+    $scriptPath = $MyInvocation.MyCommand.Path
+    if ([string]::IsNullOrWhiteSpace($scriptPath)) {
+        throw 'Cannot determine the package script location; pass -SourceRoot explicitly.'
+    }
+    $SourceRoot = Split-Path -Parent (Split-Path -Parent $scriptPath)
+}
 
 $source = (Resolve-Path -LiteralPath $SourceRoot -ErrorAction Stop).Path
 if (-not (Test-Path -LiteralPath (Join-Path $source 'Cargo.toml') -PathType Leaf) -or

@@ -12,18 +12,26 @@ param(
     [string]$RequestFile,
 
     [Parameter()]
-    [string]$ExecutablePath = $(
-        $rootExecutable = Join-Path $PSScriptRoot '..\lgk-vector.exe'
-        if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
-            $rootExecutable
-        } else {
-            Join-Path $PSScriptRoot '..\target\release\lgk-vector.exe'
-        }
-    ),
+    [string]$ExecutablePath,
 
     [Parameter()]
     [switch]$ValidateOnly
 )
+
+# Avoid relying on $PSScriptRoot: it is empty in some Windows PowerShell
+# launch paths even when the script itself was supplied with -File.
+$scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($scriptDirectory)) {
+    throw 'Cannot determine the LGK-Vector script location; pass -ExecutablePath explicitly.'
+}
+if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    $rootExecutable = Join-Path $scriptDirectory '..\lgk-vector.exe'
+    if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
+        $ExecutablePath = $rootExecutable
+    } else {
+        $ExecutablePath = Join-Path $scriptDirectory '..\target\release\lgk-vector.exe'
+    }
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

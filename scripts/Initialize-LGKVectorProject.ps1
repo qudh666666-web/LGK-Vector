@@ -13,15 +13,21 @@ param(
     [string]$DavinciCommandPath,
 
     [Parameter()]
-    [string]$ExecutablePath = $(
-        $rootExecutable = Join-Path $PSScriptRoot '..\lgk-vector.exe'
-        if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
-            $rootExecutable
-        } else {
-            Join-Path $PSScriptRoot '..\target\release\lgk-vector.exe'
-        }
-    )
+    [string]$ExecutablePath
 )
+
+$scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+if ([string]::IsNullOrWhiteSpace($scriptDirectory)) {
+    throw 'Cannot determine the LGK-Vector script location; pass -ExecutablePath explicitly.'
+}
+if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+    $rootExecutable = Join-Path $scriptDirectory '..\lgk-vector.exe'
+    if (Test-Path -LiteralPath $rootExecutable -PathType Leaf) {
+        $ExecutablePath = $rootExecutable
+    } else {
+        $ExecutablePath = Join-Path $scriptDirectory '..\target\release\lgk-vector.exe'
+    }
+}
 
 $project = (Resolve-Path -LiteralPath $ProjectPath -ErrorAction Stop).Path.TrimEnd('\')
 $tool = (Resolve-Path -LiteralPath $ToolPath -ErrorAction Stop).Path.TrimEnd('\')
@@ -73,7 +79,7 @@ $json = $config | ConvertTo-Json -Depth 3
 try {
     # get_errors_list is not executed in doctor mode; it makes doctor verify the
     # DPA and DVCfgCmd paths in addition to the JSON and executable pair.
-    $result = & (Join-Path $PSScriptRoot 'Invoke-LGKVector.ps1') `
+    $result = & (Join-Path $scriptDirectory 'Invoke-LGKVector.ps1') `
         -ProjectPath $project `
         -ExecutablePath $ExecutablePath `
         -Request '{"func":"get_errors_list"}' `

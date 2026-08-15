@@ -2,6 +2,12 @@
 
 版本号说明发布顺序，Git 提交号用于定位准确源码。每次功能、接口、包装器或 Skill 改动，都必须在顶部新增记录。
 
+## v0.3.1 - 2026-08-15
+
+- 修复 Windows PowerShell 在部分 `-File` 启动路径下将 `$PSScriptRoot` 置空时，发布包“一键测试 EXE”、包装器、初始化器和打包脚本无法定位自身目录的问题；现统一回退到 `$MyInvocation.MyCommand.Path`，不可识别时给出明确错误；
+- 发布包自检继续保留在发行包的 `test` 目录；源码的 `tests` 仍只承担 Rust、onboarding、打包与开源合规检查；
+- 验证：从新打包目录以 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File` 运行自检，11 项断言全部通过。
+
 ## v0.3.0 final - 2026-08-12
 
 - 固定公开仓库地址为 `https://github.com/qudh666666-web/LGK-Vector`；发布时只推送经过审计的 clean-root 公共快照，不公开含个人邮箱和旧名称的私有开发历史；
