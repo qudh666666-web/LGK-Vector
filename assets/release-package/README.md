@@ -1,28 +1,27 @@
-# LGK-Vector skill package
+# LGK-Vector 技能包
 
-This is the small Windows runtime package for a locally licensed Vector
-DaVinci Configurator installation. It is not the source repository and does
-not contain DaVinci, SIP content, licenses, or customer projects.
+这是给 Windows 使用者准备的精简运行包，用于调用本机已合法安装的
+Vector DaVinci Configurator。它不是源码仓库，包内不包含 DaVinci、SIP、
+许可证或任何客户工程。
 
-## Install
+## 安装
 
-Copy the complete `lgk-vector` folder into one of the following skill folders.
-Do not copy only one EXE: the CLI, Host, and PowerShell scripts must remain
-together.
+将完整的 `lgk-vector` 文件夹复制到下列任意一个技能目录。不要只复制一个
+EXE：CLI、Host 和 PowerShell 脚本必须保持在同一个文件夹内。
 
-| Agent | Project installation | Global installation |
+| Agent | 工程级安装 | 全局安装 |
 | --- | --- | --- |
-| Codex | `<project>\.codex\skills\lgk-vector` | `%USERPROFILE%\.codex\skills\lgk-vector` |
-| OpenCode | `<project>\.opencode\skills\lgk-vector` | `%USERPROFILE%\.config\opencode\skills\lgk-vector` |
-| Claude Code | `<project>\.claude\skills\lgk-vector` | `%USERPROFILE%\.claude\skills\lgk-vector` |
+| Codex | `<工程目录>\.codex\skills\lgk-vector` | `%USERPROFILE%\.codex\skills\lgk-vector` |
+| OpenCode | `<工程目录>\.opencode\skills\lgk-vector` | `%USERPROFILE%\.config\opencode\skills\lgk-vector` |
+| Claude Code | `<工程目录>\.claude\skills\lgk-vector` | `%USERPROFILE%\.claude\skills\lgk-vector` |
 
-Open a new agent session afterwards and say: `Use the lgk-vector skill for this
-DaVinci ECUC task.` Agents that do not implement native skills can read
-`lgk-vector\AGENTS.md` and use the same scripts.
+安装后新开一个 Agent 会话，并直接说：`使用 lgk-vector skill 处理当前
+DaVinci ECUC 任务。` 不支持原生 Skill 的 Agent 也可以先读取
+`lgk-vector\AGENTS.md`，再调用同一套脚本。
 
-## First project
+## 第一次接入工程
 
-From the installed `lgk-vector` folder, create the project-local configuration:
+在安装后的 `lgk-vector` 文件夹内执行下面命令，为目标工程创建配置：
 
 ```powershell
 & ".\Initialize-LGKVectorProject.ps1" `
@@ -30,8 +29,8 @@ From the installed `lgk-vector` folder, create the project-local configuration:
   -ToolPath "D:\\VectorSIP"
 ```
 
-This creates `lgk-vector.json` in the DaVinci Cfg directory. Then call the
-wrapper, or let the installed Agent Skill call it:
+它会在 DaVinci 的 Cfg 目录中创建 `lgk-vector.json`。之后可手工调用
+包装器，也可以让安装后的 Agent Skill 自动调用：
 
 ```powershell
 & ".\Invoke-LGKVector.ps1" `
@@ -39,15 +38,13 @@ wrapper, or let the installed Agent Skill call it:
   -Request '{"func":"find_module","module":"Com"}'
 ```
 
-After work is complete, always send `{ "func": "shutdown_host" }` through the
-same wrapper.
+完成工作后，必须通过同一包装器发送 `{ "func": "shutdown_host" }`。
 
-## Test the download
+## 验证下载包
 
-Before connecting a real project, double-click `test\一键测试EXE.cmd`. A result
-with `"valid": true` proves the packaged EXE pair, Unicode paths, local ECUC
-inspection, cache behavior, and normal Host shutdown. It does not start or
-validate proprietary DaVinci generation.
+接入真实工程前，双击 `test\一键测试EXE.cmd`。看到 `"valid": true` 表示
+包内 EXE 配对、中文路径、本地 ECUC 查询、缓存和 Host 正常关闭均已通过。
+该测试不会启动 DaVinci，也不能替代目标电脑上的 DaVinci/SIP/许可证验证。
 
-For source code, contribution, and detailed maintenance documentation, visit
-https://github.com/qudh666666-web/LGK-Vector.
+源码、贡献方式和完整维护资料见：
+https://github.com/qudh666666-web/LGK-Vector

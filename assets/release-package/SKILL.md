@@ -1,41 +1,40 @@
 ---
 name: lgk-vector
-description: Use this skill for fast, verified Vector DaVinci ECUC inspection, edits, generation, DBC import, and normal resident-host shutdown.
+description: 用于快速、可验证地完成 Vector DaVinci ECUC 查询、修改、生成、DBC 导入和常驻 Host 正常关闭。
 ---
 
 # LGK-Vector
 
-Use the sibling `Invoke-LGKVector.ps1` wrapper for all requests. This runtime
-requires a lawful local DaVinci/SIP installation and a project-local
-`lgk-vector.json` in the target Cfg directory. If configuration is absent, use
-the sibling `Initialize-LGKVectorProject.ps1` first.
+所有请求都使用同目录的 `Invoke-LGKVector.ps1` 包装器。本运行包要求电脑中
+已合法安装匹配的 DaVinci/SIP，并且目标工程 Cfg 目录内存在
+`lgk-vector.json`；若配置不存在，先使用同目录的
+`Initialize-LGKVectorProject.ps1`。
 
-## Fast default workflow
+## 默认快速流程
 
-1. Query only what is needed: `find_module`, `get_param_definition`,
-   `locate_container`, or `inspect_ecuc_containers`.
-2. For an ECUC change, save and close the same DaVinci GUI project, read the
-   exact target text, and send one scoped `edit_file` request with `expected`.
-3. Run `generate_code` for the affected module only. If it fails, obtain
-   `get_errors_list` for that module; do not retry blindly or generate all.
-4. Report ECUC changes separately from generated C/H/LSL output.
-5. End every session with `{ "func": "shutdown_host" }` through the wrapper.
+1. 只查询必要内容：`find_module`、`get_param_definition`、
+   `locate_container` 或 `inspect_ecuc_containers`。
+2. 修改 ECUC 前，保存并关闭同一个 DaVinci GUI 工程，读取准确原文后发送
+   一条带 `expected` 的小范围 `edit_file` 请求。
+3. 只对受影响模块调用 `generate_code`。若失败，再读取该模块的
+   `get_errors_list`；不要盲目重试或全量生成。
+4. 分开汇报 ECUC 配置改动与生成的 C/H/LSL 输出。
+5. 每次会话结束都通过包装器发送 `{ "func": "shutdown_host" }`。
 
-## Guardrails
+## 必须遵守
 
-- Never manually rewrite ECUC ARXML when a verified LGK-Vector request can
-  make the change.
-- Send `edit_file`, `import_dbc`, `update_project`, `auto_solve_errors`,
-  `generate_code`, and `shutdown_host` as separate requests.
-- `auto_solve_errors` requires a fresh error list, explicit user approval, and
-  `confirmed:true`.
-- Before `import_dbc` or `update_project`, save and close the DaVinci GUI.
-- Use only the supported functions: `inspect_ecuc_containers`, `find_module`,
-  `find_module_template`, `get_param_definition`, `locate_container`,
-  `edit_file`, `get_errors_list`, `auto_solve_errors`, `generate_code`,
-  `update_project`, `import_dbc`, and `shutdown_host`.
+- 能使用 LGK-Vector 完成的 DaVinci ECUC 改动，不要手工改写 ARXML。
+- `edit_file`、`import_dbc`、`update_project`、`auto_solve_errors`、
+  `generate_code` 和 `shutdown_host` 必须各自单独发送，不能混在数组请求中。
+- `auto_solve_errors` 必须先有最新错误列表、用户明确同意，并传入
+  `confirmed:true`。
+- `import_dbc` 或 `update_project` 前，保存并关闭 DaVinci GUI。
+- 仅使用支持的函数：`inspect_ecuc_containers`、`find_module`、
+  `find_module_template`、`get_param_definition`、`locate_container`、
+  `edit_file`、`get_errors_list`、`auto_solve_errors`、`generate_code`、
+  `update_project`、`import_dbc`、`shutdown_host`。
 
-## Example
+## 示例
 
 ```powershell
 & "<skill-root>\Invoke-LGKVector.ps1" `
@@ -43,4 +42,4 @@ the sibling `Initialize-LGKVectorProject.ps1` first.
   -Request '{"func":"inspect_ecuc_containers","module":"Com","container":"ComSignal"}'
 ```
 
-Read sibling `AGENTS.md` for cross-agent setup and the exact project workflow.
+跨 Agent 接入方式和工程工作规则见同目录的 `AGENTS.md`。
